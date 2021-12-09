@@ -26,8 +26,7 @@ data ERC20 = ERC20 {
 class IERC20 a where
   balanceOf :: a -> Address -> Maybe Int
   transfer :: a -> Address -> Address -> Int -> Maybe Accounts
-  -- approve :: a -> Address -> Int -> Maybe Int
-  -- allowance :: a ->  Address -> Address -> Maybe Int
+  approve :: a -> Address -> Address -> Int -> Maybe Allowed
 
 instance IERC20 ERC20 where
   balanceOf erc20 usrAddr = Map.lookup usrAddr (accounts erc20)
@@ -41,21 +40,26 @@ instance IERC20 ERC20 where
             update (\balance -> Just (balance + amount)) bob acnt
     where
       acnt = accounts erc20
-  -- approve erc20 approverAlice approveeBob amount = Just 0
-  -- allowance erc20 alice bob = Just 0
 
-unwrap :: Maybe Int -> String
-unwrap maybeVal = case maybeVal of
+  approve erc20 approverAlice approveeBob amount =
+    if notMember approverAlice acnt || notMember approveeBob acnt then Just allc  else
+      Map.insert approverAlice <$> updatedAliceAllowedActs' <*> Just allc
+      where
+        allc = allowance erc20
+        acnt = accounts erc20
+        aliceAllowedAcnts' = Map.lookup approverAlice allc
+        updatedAliceAllowedActs' =  Map.insert approveeBob amount <$> aliceAllowedAcnts'
+
+unwrap :: String -> Maybe Int -> String
+unwrap commonStr maybeVal = case maybeVal of
   Nothing -> commonStr <> "0"
   Just i -> commonStr <> show i
-  where
-    commonStr = "You value is: "
 
 main :: IO ()
-main = putStrLn joshBalanceStr
+main = putStrLn resultStr
   where
-    _blockchain = Map.fromList [("alice", 1000), ("bob", 3000)]
-    _allowance = Map.fromList [("alice", Map.fromList [("bob", 100)])]
+    _blockchain = Map.fromList [("alice", 1000), ("bob", 3000), ("chris", 4000)]
+    _allowance = Map.fromList [("alice", Map.fromList [("chris", 100)])]
     erc20 = ERC20 {
         totalSupply = 1000000
         , name = "Ethereuem"
@@ -65,5 +69,12 @@ main = putStrLn joshBalanceStr
         , accounts = _blockchain
         , allowance = _allowance
     }
-    updatedAcnt = transfer erc20 "alice" "bob" 2000
-    joshBalanceStr =  unwrap (updatedAcnt >>= Map.lookup "alice")
+    updatedAcnt = transfer erc20 "alice" "bob" 200
+    updatedAllc = approve erc20 "alice" "chris" 200
+    alloc = updatedAllc >>= Map.lookup "alice"
+    bobAllc = alloc >>= Map.lookup "chris"
+    resultStr = show updatedAcnt <>
+                "\n" <>
+                show updatedAllc <>
+                "\n" <>
+                unwrap "chris's allownce is: " bobAllc
