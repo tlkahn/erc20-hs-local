@@ -50,6 +50,7 @@ let
       [ projectDrv.cabal-install
         # Dev dependencies below:
         projectDrv.ghcid
+        projectDrv.hlint
         # Runtime dependencies below;
         pkgs.curl
         pkgs.git

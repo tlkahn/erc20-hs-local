@@ -11,6 +11,7 @@ import Data.Map as Map
 
 type Address = String
 type Accounts = Map Address Int
+type Allowed = Map Address Accounts
 
 data ERC20 = ERC20 {
   totalSupply :: Int
@@ -19,6 +20,7 @@ data ERC20 = ERC20 {
   , symbol :: String
   , address :: String
   , accounts :: Accounts
+  , allowance :: Allowed
 }
 
 class IERC20 a where
@@ -39,27 +41,29 @@ instance IERC20 ERC20 where
             update (\balance -> Just (balance + amount)) bob acnt
     where
       acnt = accounts erc20
-  -- approve erc20 alice bob = Just 0
+  -- approve erc20 approverAlice approveeBob amount = Just 0
   -- allowance erc20 alice bob = Just 0
 
 unwrap :: Maybe Int -> String
 unwrap maybeVal = case maybeVal of
   Nothing -> commonStr <> "0"
-  Just i -> commonStr <> (show i)
+  Just i -> commonStr <> show i
   where
     commonStr = "You value is: "
 
 main :: IO ()
 main = putStrLn joshBalanceStr
   where
-    blockchain = Map.fromList [("alice", 1000), ("bob", 3000)]
+    _blockchain = Map.fromList [("alice", 1000), ("bob", 3000)]
+    _allowance = Map.fromList [("alice", Map.fromList [("bob", 100)])]
     erc20 = ERC20 {
         totalSupply = 1000000
         , name = "Ethereuem"
         , decimals = 18
         , symbol = "ETH"
         , address = "0x0001"
-        , accounts = blockchain
+        , accounts = _blockchain
+        , allowance = _allowance
     }
     updatedAcnt = transfer erc20 "alice" "bob" 2000
-    joshBalanceStr =  unwrap $ (updatedAcnt >>= Map.lookup "alice")
+    joshBalanceStr =  unwrap (updatedAcnt >>= Map.lookup "alice")
